@@ -13,6 +13,8 @@
 {-# OPTIONS_GHC -O2 -Wall #-}
 module Data.Primitive.Contiguous
   ( C.Contiguous
+  , C.Element
+  , C.Mutable
   , C.Always
     -- * Primitives
   , C.empty
@@ -43,16 +45,14 @@ module Data.Primitive.Contiguous
 
 import Prelude hiding (map,read)
 
+import "contiguous" Data.Primitive.Contiguous (Contiguous,Element,Mutable)
 import Control.Exception (ArrayException(..),toException)
-import Control.Monad.ST (ST,runST)
-import Data.Kind (Type)
-import Data.Primitive
-import GHC.Exts (ArrayArray#,Constraint,RuntimeRep,TYPE,raise#)
+import Control.Monad.ST (ST)
+import GHC.Exts (raise#)
 import GHC.Stack (HasCallStack,prettyCallStack,callStack)
-import "contiguous" Data.Primitive.Contiguous (Contiguous,Element,Mutable,Always)
+
 import qualified "contiguous" Data.Primitive.Contiguous as C
 import qualified Data.List as L
-import qualified Prelude as P
 
 check :: HasCallStack => String -> Bool -> a -> a
 check _      True  x = x

@@ -32,15 +32,18 @@ module Data.Primitive.Contiguous
   , copyMutable
   , clone
   , cloneMutable
-  , C.foldr
   , C.equals
   , C.unlift
   , C.lift
     -- * Synthetic Functions
   , C.map
+  , C.foldr
   , C.foldl'
   , C.foldr'
   , C.foldMap'
+  , C.foldlM'
+  , unsafeFromListN
+  , unsafeFromListReverseN
   ) where
 
 import Prelude hiding (map,read)
@@ -106,7 +109,20 @@ resize marr n = check "resize: negative size" (n>=0) (C.resize marr n)
 copy :: (HasCallStack, Contiguous arr, Element arr b) => Mutable arr s b -> Int -> arr b -> Int -> Int -> ST s ()
 copy marr s1 arr s2 l = do
   sz <- C.sizeMutable marr
-  check "copy: index range out of bounds"
+  let explain = L.concat
+        [ "[dst size: "
+        , show sz
+        , ", dst off: " 
+        , show s1
+        , ", src size: "
+        , show (C.size arr)
+        , ", src off: " 
+        , show s2
+        , ", copy size: "
+        , show l
+        , "]"
+        ]
+  check ("copy: index range out of bounds " ++ explain)
     (s1>=0 && s2>=0 && l>=0 && (s2+l)<=C.size arr && (s1+l)<=sz)
     (C.copy marr s1 arr s2 l)
 
@@ -132,7 +148,7 @@ copyMutable marr1 s1 marr2 s2 l = do
     (C.copyMutable marr1 s1 marr2 s2 l)
 
 clone :: (HasCallStack, Contiguous arr, Element arr b) => arr b -> Int -> Int -> arr b
-clone arr s l = check "clone: index range out of bounds"
+clone arr s l = check ("clone: index range out of bounds [ix=" ++ show s ++ ",len=" ++ show l ++ ",sz=" ++ show (C.size arr) ++ "]")
   (s>=0 && l>=0 && (s+l)<=C.size arr)
   (C.clone arr s l)
 
@@ -143,4 +159,25 @@ cloneMutable marr s l = do
     (s>=0 && l>=0 && (s+l)<=siz)
     (C.cloneMutable marr s l)
 
+unsafeFromListN :: (Contiguous arr, Element arr a)
+  => Int -- ^ length of list
+  -> [a] -- ^ list
+  -> arr a
+unsafeFromListN expected xs =
+  let actual = length xs
+   in check
+        ("unsafeFromListN: given length " ++ show expected ++ " did not match actual length " ++ show actual)
+        (actual == expected)
+        (C.unsafeFromListN expected xs)
+
+unsafeFromListReverseN :: (Contiguous arr, Element arr a)
+  => Int -- ^ length of list
+  -> [a] -- ^ list
+  -> arr a
+unsafeFromListReverseN expected xs =
+  let actual = length xs
+   in check
+        ("unsafeFromListReverseN: given length " ++ show expected ++ " did not match actual length " ++ show actual)
+        (actual == expected)
+        (C.unsafeFromListReverseN expected xs)
 

@@ -18,6 +18,9 @@ module Data.Primitive.Contiguous
   , C.Always
     -- * Primitives
   , C.empty
+  , C.null
+  , C.replicateM
+  , C.rnf
   , new
   , index
   , index#
@@ -40,17 +43,22 @@ module Data.Primitive.Contiguous
   , C.foldr
   , C.foldl'
   , C.foldr'
+  , C.foldMap
   , C.foldMap'
   , C.foldlM'
+  , C.traverse_
+  , C.itraverse_
   , unsafeFromListN
   , unsafeFromListReverseN
+  , C.liftHashWithSalt
+  , C.same
   ) where
 
 import Prelude hiding (map,read)
 
 import "contiguous" Data.Primitive.Contiguous (Contiguous,Element,Mutable)
 import Control.Exception (ArrayException(..),toException)
-import Control.Monad.ST (ST)
+import Control.Monad.Primitive (PrimMonad,PrimState)
 import GHC.Exts (raise#)
 import GHC.Stack (HasCallStack,prettyCallStack,callStack)
 
@@ -65,7 +73,7 @@ check# :: HasCallStack => String -> Bool -> (# a #) -> (# a #)
 check# _      True  x = x
 check# errMsg False _ = raise# (toException $ IndexOutOfBounds $ "Data.Primitive.Contiguous." ++ errMsg ++ "\n" ++ prettyCallStack callStack)
 
-new :: (HasCallStack, Contiguous arr, Element arr b) => Int -> ST s (Mutable arr s b)
+new :: (HasCallStack, Contiguous arr, Element arr b, PrimMonad m) => Int -> m (Mutable arr (PrimState m) b)
 new n = check "new: negative size" (n>=0) (C.new n)
 
 index :: (HasCallStack, Contiguous arr, Element arr b) => arr b -> Int -> b
@@ -89,24 +97,24 @@ indexM arr i = check ("indexM: out of bounds [ix=" ++ show i ++ ",sz=" ++ show s
   where
   sz = C.size arr
 
-read :: (HasCallStack, Contiguous arr, Element arr b) => Mutable arr s b -> Int -> ST s b
+read :: (HasCallStack, Contiguous arr, Element arr b, PrimMonad m) => Mutable arr (PrimState m) b -> Int -> m b
 read marr i = do
   sz <- C.sizeMutable marr
   check ("read: out of bounds [ix=" ++ show i ++ ",sz=" ++ show sz ++ "]")
     (i >= 0 && i < sz)
     (C.read marr i)
 
-write :: (HasCallStack, Contiguous arr, Element arr b) => Mutable arr s b -> Int -> b -> ST s ()
+write :: (HasCallStack, Contiguous arr, Element arr b, PrimMonad m) => Mutable arr (PrimState m) b -> Int -> b -> m ()
 write marr i x = do
   sz <- C.sizeMutable marr
   check ("write: out of bounds [ix=" ++ show i ++ ",sz=" ++ show sz ++ "]")
     (i >= 0 && i < sz)
     (C.write marr i x)
 
-resize :: (HasCallStack, Contiguous arr, Element arr b) => Mutable arr s b -> Int -> ST s (Mutable arr s b)
+resize :: (HasCallStack, Contiguous arr, Element arr b, PrimMonad m) => Mutable arr (PrimState m) b -> Int -> m (Mutable arr (PrimState m) b)
 resize marr n = check "resize: negative size" (n>=0) (C.resize marr n)
 
-copy :: (HasCallStack, Contiguous arr, Element arr b) => Mutable arr s b -> Int -> arr b -> Int -> Int -> ST s ()
+copy :: (HasCallStack, Contiguous arr, Element arr b, PrimMonad m) => Mutable arr (PrimState m) b -> Int -> arr b -> Int -> Int -> m ()
 copy marr s1 arr s2 l = do
   sz <- C.sizeMutable marr
   let explain = L.concat
@@ -126,7 +134,7 @@ copy marr s1 arr s2 l = do
     (s1>=0 && s2>=0 && l>=0 && (s2+l)<=C.size arr && (s1+l)<=sz)
     (C.copy marr s1 arr s2 l)
 
-copyMutable :: (HasCallStack, Contiguous arr, Element arr b) => Mutable arr s b -> Int -> Mutable arr s b -> Int -> Int -> ST s ()
+copyMutable :: (HasCallStack, Contiguous arr, Element arr b, PrimMonad m) => Mutable arr (PrimState m) b -> Int -> Mutable arr (PrimState m) b -> Int -> Int -> m ()
 copyMutable marr1 s1 marr2 s2 l = do
   siz1 <- C.sizeMutable marr1
   siz2 <- C.sizeMutable marr2
@@ -152,7 +160,7 @@ clone arr s l = check ("clone: index range out of bounds [ix=" ++ show s ++ ",le
   (s>=0 && l>=0 && (s+l)<=C.size arr)
   (C.clone arr s l)
 
-cloneMutable :: (HasCallStack, Contiguous arr, Element arr b) => Mutable arr s b -> Int -> Int -> ST s (Mutable arr s b)
+cloneMutable :: (HasCallStack, Contiguous arr, Element arr b, PrimMonad m) => Mutable arr (PrimState m) b -> Int -> Int -> m (Mutable arr (PrimState m) b)
 cloneMutable marr s l = do
   siz <- C.sizeMutable marr
   check "cloneMutable: index range out of bounds"

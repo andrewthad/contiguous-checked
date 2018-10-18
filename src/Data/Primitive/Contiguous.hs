@@ -39,15 +39,24 @@ module Data.Primitive.Contiguous
   , C.unlift
   , C.lift
     -- * Synthetic Functions
+  , C.singleton
+  , C.doubleton
+  , C.tripleton
+  , C.append
   , C.map
+  , C.map'
+  , C.imap
   , C.foldr
   , C.foldl'
   , C.foldr'
   , C.foldMap
   , C.foldMap'
   , C.foldlM'
+  , C.traverse
   , C.traverse_
   , C.itraverse_
+  , C.imapMutable'
+  , C.traverseP
   , unsafeFromListN
   , unsafeFromListReverseN
   , C.liftHashWithSalt

@@ -1,7 +1,12 @@
 cabal-version: 2.0
 name: contiguous-checked
 version: 0.3.2.0
-description: Please see the README on GitHub
+description:
+  A drop-in replacement for `contiguous` where all the functions
+  checks bounds at runtime. This is less efficient but gives
+  helpful error messages instead of segfaulting. It is intended
+  to be used when testing software.
+synopsis: contiguous with bounds checks
 homepage: https://github.com/andrewthad/contiguous-checked
 bug-reports: https://github.com/andrewthad/contiguous-checked/issues
 author: Andrew Martin
@@ -9,6 +14,7 @@ maintainer: andrew.thaddeus@gmail.com
 copyright: 2018 Andrew Martin
 license: BSD3
 license-file: LICENSE
+category: Data
 build-type: Simple
 extra-source-files: README.md
 

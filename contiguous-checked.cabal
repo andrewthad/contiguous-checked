@@ -1,6 +1,6 @@
 cabal-version: 2.0
 name: contiguous-checked
-version: 0.3.0.0
+version: 0.3.2.0
 description: Please see the README on GitHub
 homepage: https://github.com/andrewthad/contiguous-checked
 bug-reports: https://github.com/andrewthad/contiguous-checked/issues
@@ -22,7 +22,7 @@ library
   hs-source-dirs: src
   build-depends:
       base >=4.9 && <5
-    , primitive-checked >= 0.6.4.1
-    , contiguous >= 0.3 && < 0.4
+    , primitive >= 0.6.4
+    , contiguous >= 0.3.2 && < 0.4
   default-language: Haskell2010
 

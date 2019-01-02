@@ -35,6 +35,7 @@ module Data.Primitive.Contiguous
   , copyMutable
   , clone
   , cloneMutable
+  , thaw
   , C.equals
   , C.unlift
   , C.lift
@@ -84,6 +85,13 @@ check# errMsg False _ = raise# (toException $ IndexOutOfBounds $ "Data.Primitive
 
 new :: (HasCallStack, Contiguous arr, Element arr b, PrimMonad m) => Int -> m (Mutable arr (PrimState m) b)
 new n = check "new: negative size" (n>=0) (C.new n)
+
+thaw :: (HasCallStack, Contiguous arr, PrimMonad m, Element arr b) => arr b -> Int -> Int -> m (Mutable arr (PrimState m) b)
+thaw arr off len = check ("thaw: out of bounds [off=" ++ show off ++ ",len=" ++ show len ++ "]")
+  (off >= 0 && len >= 0 && off + len <= sz)
+  (C.thaw arr off len)
+  where
+  sz = C.size arr
 
 index :: (HasCallStack, Contiguous arr, Element arr b) => arr b -> Int -> b
 index arr i = check ("index: out of bounds [ix=" ++ show i ++ ",sz=" ++ show sz ++ "]")

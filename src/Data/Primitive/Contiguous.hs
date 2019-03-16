@@ -57,6 +57,7 @@ module Data.Primitive.Contiguous
   , C.traverse_
   , C.itraverse_
   , C.imapMutable'
+  , C.foldlMap'
   , C.ifoldlMap'
   , C.ifoldlMap1'
   , C.traverseP

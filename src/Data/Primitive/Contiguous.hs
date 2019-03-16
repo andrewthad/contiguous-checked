@@ -30,6 +30,7 @@ module Data.Primitive.Contiguous
   , resize
   , C.size
   , C.sizeMutable
+  , freeze
   , C.unsafeFreeze
   , copy
   , copyMutable
@@ -133,6 +134,22 @@ write marr i x = do
 
 resize :: (HasCallStack, Contiguous arr, Element arr b, PrimMonad m) => Mutable arr (PrimState m) b -> Int -> m (Mutable arr (PrimState m) b)
 resize marr n = check "resize: negative size" (n>=0) (C.resize marr n)
+
+freeze :: (HasCallStack, Contiguous arr, Element arr b, PrimMonad m) => Mutable arr (PrimState m) b -> Int -> Int -> m (arr b)
+freeze marr off len = do
+  sz <- C.sizeMutable marr
+  let explain = L.concat
+        [ "[sz="
+        , show sz
+        , ",off="
+        , show off
+        , ",len="
+        , show len
+        , "]"
+        ]
+  check ("freeze: index range out of bounds " ++ explain)
+    (off>=0 && (off+len)<=sz)
+    (C.freeze marr off len)
 
 copy :: (HasCallStack, Contiguous arr, Element arr b, PrimMonad m) => Mutable arr (PrimState m) b -> Int -> arr b -> Int -> Int -> m ()
 copy marr s1 arr s2 l = do

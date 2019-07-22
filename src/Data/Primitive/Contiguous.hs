@@ -65,6 +65,7 @@ module Data.Primitive.Contiguous
   , unsafeFromListN
   , unsafeFromListReverseN
   , C.liftHashWithSalt
+  , C.filter
   , C.same
   ) where
 

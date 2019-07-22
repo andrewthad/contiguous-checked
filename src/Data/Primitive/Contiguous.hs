@@ -6,6 +6,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UnboxedTuples #-}
@@ -65,8 +66,8 @@ module Data.Primitive.Contiguous
   , unsafeFromListN
   , unsafeFromListReverseN
   , C.liftHashWithSalt
-  , C.filter
   , C.same
+  , filter
   ) where
 
 import Prelude hiding (map,read)
@@ -74,7 +75,10 @@ import Prelude hiding (map,read)
 import "contiguous" Data.Primitive.Contiguous (Contiguous,Element,Mutable)
 import Control.Exception (ArrayException(..),toException)
 import Control.Monad.Primitive (PrimMonad,PrimState)
-import GHC.Exts (raise#)
+import Control.Monad.ST (ST,runST)
+import Data.Primitive (MutablePrimArray,readPrimArray,writePrimArray,newPrimArray)
+import Data.Word (Word8)
+import GHC.Exts (Int(I#),raise#,dataToTag#)
 import GHC.Stack (HasCallStack,prettyCallStack,callStack)
 
 import qualified "contiguous" Data.Primitive.Contiguous as C
@@ -227,3 +231,52 @@ unsafeFromListReverseN expected xs =
         (actual == expected)
         (C.unsafeFromListReverseN expected xs)
 
+-- | Drop elements that do not satisfy the predicate.
+filter :: (Contiguous arr, Element arr a)
+  => (a -> Bool)
+  -> arr a
+  -> arr a
+filter p arr = ifilter (\_ a -> p a) arr
+{-# inline filter #-}
+
+-- | Drop elements that do not satisfy the predicate which
+--   is applied to values and their indices.
+ifilter :: (Contiguous arr, Element arr a)
+  => (Int -> a -> Bool)
+  -> arr a
+  -> arr a
+ifilter p arr = runST $ do
+  marr :: MutablePrimArray s Word8 <- newPrimArray sz
+  let go1 :: Int -> Int -> ST s Int
+      go1 !ix !numTrue = if ix < sz
+        then do
+          atIx <- indexM arr ix
+          let !keep = p ix atIx
+          let !keepTag = I# (dataToTag# keep)
+          writePrimArray marr ix (fromIntegral keepTag)
+          go1 (ix + 1) (numTrue + keepTag)
+        else pure numTrue
+  numTrue <- go1 0 0
+  if numTrue == sz
+    then pure arr
+    else do
+      marrTrues <- new numTrue
+      let go2 !ixSrc !ixDst = if ixDst < numTrue
+            then do
+              atIxKeep <- readPrimArray marr ixSrc
+              if isTrue atIxKeep
+                then do
+                  atIxVal <- C.indexM arr ixSrc
+                  C.write marrTrues ixDst atIxVal
+                  go2 (ixSrc + 1) (ixDst + 1)
+                else go2 (ixSrc + 1) ixDst
+            else pure ()
+      go2 0 0
+      C.unsafeFreeze marrTrues
+  where
+    !sz = C.size arr
+{-# inline ifilter #-}
+
+isTrue :: Word8 -> Bool
+isTrue 0 = False
+isTrue _ = True

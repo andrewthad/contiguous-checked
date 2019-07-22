@@ -70,7 +70,7 @@ module Data.Primitive.Contiguous
   , filter
   ) where
 
-import Prelude hiding (map,read)
+import Prelude hiding (map,read,filter)
 
 import "contiguous" Data.Primitive.Contiguous (Contiguous,Element,Mutable)
 import Control.Exception (ArrayException(..),toException)
